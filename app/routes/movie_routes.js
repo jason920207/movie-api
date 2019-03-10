@@ -59,8 +59,13 @@ router.get('/movies/:id', (req, res, next) => {
 // POST /movies
 router.post('/movies', (req, res, next) => {
   // set owner of new movie to be current user
-
-  Movie.create(req.body.movie)
+  const movie = {
+    title: 'Captain Marvel',
+    description: 'Carol Danvers becomes one of the universe\'s most powerful heroes when Earth is caught in the middle of a galactic war between two alien races.',
+    imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTE0YWFmOTMtYTU2ZS00ZTIxLWE3OTEtYTNiYzBkZjViZThiXkEyXkFqcGdeQXVyODMzMzQ4OTI@._V1_UX182_CR0,0,182,268_AL_.jpg',
+    publishDate: '2019-03-08'
+  }
+  Movie.create(movie)
     // respond to succesful `create` with status 201 and JSON of new "movie"
     .then(movie => {
       res.status(201).json({ movie: movie.toObject() })
