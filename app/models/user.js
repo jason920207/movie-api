@@ -12,8 +12,14 @@ const userSchema = new mongoose.Schema({
   },
   isAdmin: Boolean,
   token: String,
-  favorite: [],
-  wishlist: []
+  favorite: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Movie'
+  }],
+  wishlist: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Movie'
+  }]
 }, {
   timestamps: true,
   toObject: {

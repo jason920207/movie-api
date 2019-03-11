@@ -74,6 +74,8 @@ router.post('/sign-in', (req, res, next) => {
 
   // find a user based on the email that was passed
   User.findOne({ email: req.body.credentials.email })
+    .populate('favorite')
+    .populate('wishlist')
     .then(record => {
       // if we didn't find a user with that email, send 401
       if (!record) {
@@ -152,6 +154,8 @@ router.delete('/sign-out', requireToken, (req, res, next) => {
 router.get('/users/:id', requireToken, (req, res, next) => {
   // req.params.id will be set based on the `:id` in the route
   User.findById(req.params.id)
+    .populate('favorite')
+    .populate('wishlist')
     .then(handle404)
     // if `findById` is succesful, respond with 200 and "example" JSON
     .then(user => res.status(200).json({ user: user.toObject() }))
@@ -161,15 +165,18 @@ router.get('/users/:id', requireToken, (req, res, next) => {
 
 // UPDATE favorite
 // PATCH /examples/5a7db6c74d55bc51bdf39793
-router.patch('/users/:id/favorite', requireToken, removeBlanks, (req, res, next) => {
+router.patch('/favorite/:id', requireToken, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
+  console.log(req.params.id)
   User.findById(req.params.id)
     .then(handle404)
     .then(user => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
       // it will throw an error if the current user isn't the owner
+      console.log(user)
       user.favorite = req.body.movies
+      console.log(user)
       // pass the result of Mongoose's `.update` to the next `.then`
       return user.save()
     })
@@ -181,7 +188,7 @@ router.patch('/users/:id/favorite', requireToken, removeBlanks, (req, res, next)
 
 // UPDATE favorite
 // PATCH /examples/5a7db6c74d55bc51bdf39793
-router.patch('/users/:id/wishlist', requireToken, removeBlanks, (req, res, next) => {
+router.patch('/wishlist/:id', requireToken, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
 
