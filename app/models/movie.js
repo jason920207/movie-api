@@ -16,11 +16,7 @@ const movieSchema = new mongoose.Schema({
   publishDate: {
     type: Date,
     required: true
-  },
-  commit: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Comment'
-  }]
+  }
 }, {
   timestamps: true
 })
