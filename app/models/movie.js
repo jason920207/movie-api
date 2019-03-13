@@ -16,6 +16,11 @@ const movieSchema = new mongoose.Schema({
   publishDate: {
     type: Date,
     required: true
+  },
+  imdbRating: {
+    type: Number,
+    required: true,
+    default: 0
   }
 }, {
   timestamps: true

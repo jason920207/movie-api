@@ -31,6 +31,7 @@ const router = express.Router()
 // GET /comments
 router.get('/comments', (req, res, next) => {
   Comment.find({ user: req.user.id })
+    .sort({'likes.length': -1})
     .populate('owner')
     .then(comments => {
       // `comments` will be an array of Mongoose documents
@@ -46,19 +47,33 @@ router.get('/comments', (req, res, next) => {
 
 // SHOW movies
 // GET /comments/5a7db6c74d55bc51bdf39793
-router.get('/comments/:id', (req, res, next) => {
+router.get('/commentsbymovie/:id', (req, res, next) => {
   // req.params.id will be set based on the `:id` in the route
   console.log(req.params.id)
   Comment.find({movie: req.params.id})
+    .sort({'likes': -1})
     .populate('owner')
     .then(comments => {
     // `comments` will be an array of Mongoose documents
     // we want to convert each one to a POJO, so we use `.map` to
     // apply `.toObject` to each one
+      console.log(comments)
       return comments.map(comment => comment.toObject())
     })
   // respond with status 200 and JSON of the comments
     .then(comments => res.status(200).json({ comments: comments }))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
+// SHOW
+// GET /examples/5a7db6c74d55bc51bdf39793
+router.get('/comments/:id', (req, res, next) => {
+  // req.params.id will be set based on the `:id` in the route
+  Comment.findById(req.params.id)
+    .then(handle404)
+    // if `findById` is succesful, respond with 200 and "example" JSON
+    .then(comment => res.status(200).json({ comment: comment.toObject() }))
     // if an error occurs, pass it to the handler
     .catch(next)
 })
@@ -88,6 +103,7 @@ router.patch('/comments/:id', requireToken, removeBlanks, (req, res, next) => {
   delete req.body.comment.owner
 
   Comment.findById(req.params.id)
+    .sort({'likes.length': -1})
     .then(handle404)
     .then(comment => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
@@ -108,19 +124,16 @@ router.patch('/comments/:id', requireToken, removeBlanks, (req, res, next) => {
 router.patch('/commentslike/:id', requireToken, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
-  delete req.body.comment.owner
-  console.log(req.body)
   Comment.findById(req.params.id)
     .then(handle404)
     .then(comment => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
       // it will throw an error if the current user isn't the owner
-      console.log(comment)
-
+      comment.likes = req.body.likes
       // requireOwnership(req, comment)
       //
       // // pass the result of Mongoose's `.update` to the next `.then`
-      // return comment.update(req.body.comment)
+      return comment.save()
     })
     // if that succeeded, return 204 and no JSON
     .then(() => res.sendStatus(204))
@@ -128,6 +141,27 @@ router.patch('/commentslike/:id', requireToken, removeBlanks, (req, res, next) =
     .catch(next)
 })
 
+// UPDATE
+// PATCH /comments/5a7db6c74d55bc51bdf39793
+router.patch('/commentsunlike/:id', requireToken, removeBlanks, (req, res, next) => {
+  // if the client attempts to change the `owner` property by including a new
+  // owner, prevent that by deleting that key/value pair
+  Comment.findById(req.params.id)
+    .then(handle404)
+    .then(comment => {
+      // pass the `req` object and the Mongoose record to `requireOwnership`
+      // it will throw an error if the current user isn't the owner
+      comment.unlikes = req.body.unlikes
+      // requireOwnership(req, comment)
+      //
+      // // pass the result of Mongoose's `.update` to the next `.then`
+      return comment.save()
+    })
+    // if that succeeded, return 204 and no JSON
+    .then(() => res.sendStatus(204))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
 
 // DESTROY
 // DELETE /comments/5a7db6c74d55bc51bdf39793
@@ -145,7 +179,5 @@ router.delete('/comments/:id', requireToken, (req, res, next) => {
     // if an error occurs, pass it to the handler
     .catch(next)
 })
-
-
 
 module.exports = router

@@ -5,10 +5,14 @@ const passport = require('passport')
 
 // pull in Mongoose model for movies
 const Movie = require('../models/movie')
-
+const checkAdmin = require('../../lib/check_admin')
 // this is a collection of methods that help us detect situations when we need
 // to throw a custom error
 const customErrors = require('../../lib/custom_errors')
+// aws
+const multer = require('multer')
+const upload = multer({ dest: 'uploads/' })
+const promiseS3Upload = require('../../lib/promiseS3Upload')
 
 // we'll use this function to send 404 when non-existant document is requested
 const handle404 = customErrors.handle404
@@ -57,24 +61,43 @@ router.get('/movies/:id', (req, res, next) => {
 
 // CREATE
 // POST /movies
-router.post('/movies', (req, res, next) => {
+router.post('/movies', requireToken, checkAdmin, upload.single('imageUrl'), (req, res, next) => {
   // set owner of new movie to be current user
-  const movie = {
-    title: 'Captain Marvel',
-    description: 'Carol Danvers becomes one of the universe\'s most powerful heroes when Earth is caught in the middle of a galactic war between two alien races.',
-    imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTE0YWFmOTMtYTU2ZS00ZTIxLWE3OTEtYTNiYzBkZjViZThiXkEyXkFqcGdeQXVyODMzMzQ4OTI@._V1_UX182_CR0,0,182,268_AL_.jpg',
-    publishDate: '2019-03-08'
-  }
-  Movie.create(movie)
-    // respond to succesful `create` with status 201 and JSON of new "movie"
-    .then(movie => {
-      res.status(201).json({ movie: movie.toObject() })
+  console.log(req.body)
+  console.log('incoming req.file  is ', req.file)
+
+  promiseS3Upload(req)
+    .then(awsResponse => {
+      req.body.imageUrl = awsResponse.Location
+      Movie.create(req.body)
+        // respond to succesful `create` with status 201 and JSON of new "movie"
+        .then(movie => {
+          res.status(201).json({ movie: movie.toObject() })
+        })
+        // if an error occurs, pass it off to our error handler
+        // the error handler needs the error message and the `res` object so that it
+        // can send an error message back to the client
+        .catch(next)
     })
-    // if an error occurs, pass it off to our error handler
-    // the error handler needs the error message and the `res` object so that it
-    // can send an error message back to the client
-    .catch(next)
 })
+
+// router.post('/uploads', upload.single('image'), (req, res, next) => {
+//   console.log('incoming req.file  is ', req.file)
+//   promiseS3Upload(req)
+//     .then(awsResponse => {
+//       console.log(awsResponse)
+//       return Upload.create({url: awsResponse.Location})
+//     })
+//
+//     // respond to succesful `create` with status 201 and JSON of new "upload"
+//     .then(upload => {
+//       res.status(201).json({ upload: upload.toObject() })
+//     })
+//     // if an error occurs, pass it off to our error handler
+//     // the error handler needs the error message and the `res` object so that it
+//     // can send an error message back to the client
+//     .catch(next)
+// })
 
 // UPDATE
 // PATCH /movies/5a7db6c74d55bc51bdf39793
