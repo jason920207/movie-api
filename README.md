@@ -2,6 +2,10 @@
 
 This is the backend API for Movie website we created. The database uses MongoDB and features three key models to hold our data: the user, comment, movie.
 
+Preparation
+1.Fork and clone this repository
+2.Install dependencies with npm install
+
 ## TECHNOLOGIES IN USE
 
 - REACT.js
