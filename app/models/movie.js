@@ -20,7 +20,12 @@ const movieSchema = new mongoose.Schema({
   imdbRating: {
     type: Number,
     required: true,
-    default: 0
+    default: 0,
+    max: 10,
+    min: 0
+  },
+  trailer: {
+    type: String
   }
 }, {
   timestamps: true

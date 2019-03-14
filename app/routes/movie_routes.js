@@ -47,6 +47,24 @@ router.get('/movies', (req, res, next) => {
     .catch(next)
 })
 
+// INDEX
+// GET /movies
+router.get('/moviesbystar', (req, res, next) => {
+  Movie.find()
+    .sort({'imdbRating': -1})
+    .limit(10)
+    .then(movies => {
+      // `movies` will be an array of Mongoose documents
+      // we want to convert each one to a POJO, so we use `.map` to
+      // apply `.toObject` to each one
+      return movies.map(movie => movie.toObject())
+    })
+    // respond with status 200 and JSON of the movies
+    .then(movies => res.status(200).json({ movies: movies }))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
 // SHOW
 // GET /movies/5a7db6c74d55bc51bdf39793
 router.get('/movies/:id', (req, res, next) => {
@@ -101,17 +119,15 @@ router.post('/movies', requireToken, checkAdmin, upload.single('imageUrl'), (req
 
 // UPDATE
 // PATCH /movies/5a7db6c74d55bc51bdf39793
-router.patch('/movies/:id', requireToken, removeBlanks, (req, res, next) => {
+router.patch('/movies/:id', requireToken, checkAdmin, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
-  delete req.body.movie.owner
-
+  console.log(req.body.movie)
   Movie.findById(req.params.id)
     .then(handle404)
     .then(movie => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
       // it will throw an error if the current user isn't the owner
-      requireOwnership(req, movie)
 
       // pass the result of Mongoose's `.update` to the next `.then`
       return movie.update(req.body.movie)
@@ -122,14 +138,14 @@ router.patch('/movies/:id', requireToken, removeBlanks, (req, res, next) => {
     .catch(next)
 })
 
+
 // DESTROY
 // DELETE /movies/5a7db6c74d55bc51bdf39793
-router.delete('/movies/:id', requireToken, (req, res, next) => {
+router.delete('/movies/:id', requireToken, checkAdmin, (req, res, next) => {
   Movie.findById(req.params.id)
     .then(handle404)
     .then(movie => {
       // throw an error if current user doesn't own `movie`
-      requireOwnership(req, movie)
       // delete the movie ONLY IF the above didn't throw
       movie.remove()
     })
