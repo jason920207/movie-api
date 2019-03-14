@@ -3,8 +3,8 @@ const express = require('express')
 // Passport docs: http://www.passportjs.org/docs/
 const passport = require('passport')
 
-// pull in Mongoose model for movies
-const Movie = require('../models/movie')
+// pull in Mongoose model for comments
+const Comment = require('../models/comment')
 
 // this is a collection of methods that help us detect situations when we need
 // to throw a custom error
@@ -17,7 +17,7 @@ const handle404 = customErrors.handle404
 const requireOwnership = customErrors.requireOwnership
 
 // this is middleware that will remove blank fields from `req.body`, e.g.
-// { movie: { title: '', text: 'foo' } } -> { movie: { text: 'foo' } }
+// { comment: { title: '', text: 'foo' } } -> { comment: { text: 'foo' } }
 const removeBlanks = require('../../lib/remove_blank_fields')
 // passing this as a second argument to `router.<verb>` will make it
 // so that a token MUST be passed for that route to be available
@@ -28,47 +28,43 @@ const requireToken = passport.authenticate('bearer', { session: false })
 const router = express.Router()
 
 // INDEX
-// GET /movies
-router.get('/movies', (req, res, next) => {
-  Movie.find()
-    .then(movies => {
-      // `movies` will be an array of Mongoose documents
+// GET /comments
+router.get('/comments', (req, res, next) => {
+  Comment.find()
+    .then(comments => {
+      // `comments` will be an array of Mongoose documents
       // we want to convert each one to a POJO, so we use `.map` to
       // apply `.toObject` to each one
-      return movies.map(movie => movie.toObject())
+      return comments.map(comment => comment.toObject())
     })
-    // respond with status 200 and JSON of the movies
-    .then(movies => res.status(200).json({ movies: movies }))
+    // respond with status 200 and JSON of the comments
+    .then(comments => res.status(200).json({ comments: comments }))
     // if an error occurs, pass it to the handler
     .catch(next)
 })
 
 // SHOW
-// GET /movies/5a7db6c74d55bc51bdf39793
-router.get('/movies/:id', (req, res, next) => {
+// GET /comments/5a7db6c74d55bc51bdf39793
+router.get('/comments/:id', (req, res, next) => {
   // req.params.id will be set based on the `:id` in the route
-  Movie.findById(req.params.id)
+  Comment.findById(req.params.id)
     .then(handle404)
-    // if `findById` is succesful, respond with 200 and "movie" JSON
-    .then(movie => res.status(200).json({ movie: movie.toObject() }))
+    // if `findById` is succesful, respond with 200 and "comment" JSON
+    .then(comment => res.status(200).json({ comment: comment.toObject() }))
     // if an error occurs, pass it to the handler
     .catch(next)
 })
 
 // CREATE
-// POST /movies
-router.post('/movies', (req, res, next) => {
-  // set owner of new movie to be current user
-  const movie = {
-    title: 'Captain Marvel',
-    description: 'Carol Danvers becomes one of the universe\'s most powerful heroes when Earth is caught in the middle of a galactic war between two alien races.',
-    imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTE0YWFmOTMtYTU2ZS00ZTIxLWE3OTEtYTNiYzBkZjViZThiXkEyXkFqcGdeQXVyODMzMzQ4OTI@._V1_UX182_CR0,0,182,268_AL_.jpg',
-    publishDate: '2019-03-08'
-  }
-  Movie.create(movie)
-    // respond to succesful `create` with status 201 and JSON of new "movie"
-    .then(movie => {
-      res.status(201).json({ movie: movie.toObject() })
+// POST /comments
+router.post('/comments', requireToken, (req, res, next) => {
+  // set owner of new comment to be current user
+  req.body.comment.owner = req.user.id
+
+  Comment.create(req.body.comment)
+    // respond to succesful `create` with status 201 and JSON of new "comment"
+    .then(comment => {
+      res.status(201).json({ comment: comment.toObject() })
     })
     // if an error occurs, pass it off to our error handler
     // the error handler needs the error message and the `res` object so that it
@@ -77,21 +73,21 @@ router.post('/movies', (req, res, next) => {
 })
 
 // UPDATE
-// PATCH /movies/5a7db6c74d55bc51bdf39793
-router.patch('/movies/:id', requireToken, removeBlanks, (req, res, next) => {
+// PATCH /comments/5a7db6c74d55bc51bdf39793
+router.patch('/comments/:id', requireToken, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
-  delete req.body.movie.owner
+  delete req.body.comment.owner
 
-  Movie.findById(req.params.id)
+  Comment.findById(req.params.id)
     .then(handle404)
-    .then(movie => {
+    .then(comment => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
       // it will throw an error if the current user isn't the owner
-      requireOwnership(req, movie)
+      requireOwnership(req, comment)
 
       // pass the result of Mongoose's `.update` to the next `.then`
-      return movie.update(req.body.movie)
+      return comment.update(req.body.comment)
     })
     // if that succeeded, return 204 and no JSON
     .then(() => res.sendStatus(204))
@@ -100,15 +96,15 @@ router.patch('/movies/:id', requireToken, removeBlanks, (req, res, next) => {
 })
 
 // DESTROY
-// DELETE /movies/5a7db6c74d55bc51bdf39793
-router.delete('/movies/:id', requireToken, (req, res, next) => {
-  Movie.findById(req.params.id)
+// DELETE /comments/5a7db6c74d55bc51bdf39793
+router.delete('/comments/:id', requireToken, (req, res, next) => {
+  Comment.findById(req.params.id)
     .then(handle404)
-    .then(movie => {
-      // throw an error if current user doesn't own `movie`
-      requireOwnership(req, movie)
-      // delete the movie ONLY IF the above didn't throw
-      movie.remove()
+    .then(comment => {
+      // throw an error if current user doesn't own `comment`
+      requireOwnership(req, comment)
+      // delete the comment ONLY IF the above didn't throw
+      comment.remove()
     })
     // send back 204 and no content if the deletion succeeded
     .then(() => res.sendStatus(204))

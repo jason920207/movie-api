@@ -15,7 +15,15 @@ const errors = require('../../lib/custom_errors')
 const BadParamsError = errors.BadParamsError
 const BadCredentialsError = errors.BadCredentialsError
 
+// this is a collection of methods that help us detect situations when we need
+// to throw a custom error
+const customErrors = require('../../lib/custom_errors')
+
+// we'll use this function to send 404 when non-existant document is requested
+const handle404 = customErrors.handle404
+
 const User = require('../models/user')
+const removeBlanks = require('../../lib/remove_blank_fields')
 
 // passing this as a second argument to `router.<verb>` will make it
 // so that a token MUST be passed for that route to be available
@@ -66,6 +74,8 @@ router.post('/sign-in', (req, res, next) => {
 
   // find a user based on the email that was passed
   User.findOne({ email: req.body.credentials.email })
+    .populate('favorite')
+    .populate('wishlist')
     .then(record => {
       // if we didn't find a user with that email, send 401
       if (!record) {
@@ -136,6 +146,64 @@ router.delete('/sign-out', requireToken, (req, res, next) => {
   // save the token and respond with 204
   req.user.save()
     .then(() => res.sendStatus(204))
+    .catch(next)
+})
+
+// SHOW
+// GET /examples/5a7db6c74d55bc51bdf39793
+router.get('/users/:id', requireToken, (req, res, next) => {
+  // req.params.id will be set based on the `:id` in the route
+  User.findById(req.params.id)
+    .populate('favorite')
+    .populate('wishlist')
+    .then(handle404)
+    // if `findById` is succesful, respond with 200 and "example" JSON
+    .then(user => res.status(200).json({ user: user.toObject() }))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
+// UPDATE favorite
+// PATCH /examples/5a7db6c74d55bc51bdf39793
+router.patch('/favorite/:id', requireToken, removeBlanks, (req, res, next) => {
+  // if the client attempts to change the `owner` property by including a new
+  // owner, prevent that by deleting that key/value pair
+  console.log(req.params.id)
+  User.findById(req.params.id)
+    .then(handle404)
+    .then(user => {
+      // pass the `req` object and the Mongoose record to `requireOwnership`
+      // it will throw an error if the current user isn't the owner
+      console.log(user)
+      user.favorite = req.body.movies
+      console.log(user)
+      // pass the result of Mongoose's `.update` to the next `.then`
+      return user.save()
+    })
+    // if that succeeded, return 204 and no JSON
+    .then(() => res.sendStatus(204))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
+// UPDATE favorite
+// PATCH /examples/5a7db6c74d55bc51bdf39793
+router.patch('/wishlist/:id', requireToken, removeBlanks, (req, res, next) => {
+  // if the client attempts to change the `owner` property by including a new
+  // owner, prevent that by deleting that key/value pair
+
+  User.findById(req.params.id)
+    .then(handle404)
+    .then(user => {
+      // pass the `req` object and the Mongoose record to `requireOwnership`
+      // it will throw an error if the current user isn't the owner
+      user.wishlist = req.body.movies
+      // pass the result of Mongoose's `.update` to the next `.then`
+      return user.save()
+    })
+    // if that succeeded, return 204 and no JSON
+    .then(() => res.sendStatus(204))
+    // if an error occurs, pass it to the handler
     .catch(next)
 })
 

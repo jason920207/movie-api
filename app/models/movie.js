@@ -18,7 +18,8 @@ const movieSchema = new mongoose.Schema({
     required: true
   },
   commit: [{
-    type: String
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment'
   }]
 }, {
   timestamps: true

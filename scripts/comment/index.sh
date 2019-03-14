@@ -1,9 +1,9 @@
 #!/bin/sh
 
 API="http://localhost:4741"
-URL_PATH="/movies"
+URL_PATH="/comments"
 
-curl "${API}${URL_PATH}/${ID}" \
+curl "${API}${URL_PATH}" \
   --include \
   --request GET \
 
