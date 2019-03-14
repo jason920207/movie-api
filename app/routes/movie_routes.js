@@ -12,7 +12,7 @@ const customErrors = require('../../lib/custom_errors')
 // aws
 const multer = require('multer')
 const upload = multer({ dest: 'uploads/' })
-const promiseS3Upload = require('../../lib/promiseS3Upload')
+const promiseS3Upload = require('../../lib/promise_s3_upload')
 
 // we'll use this function to send 404 when non-existant document is requested
 const handle404 = customErrors.handle404
