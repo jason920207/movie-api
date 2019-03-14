@@ -207,7 +207,6 @@ router.patch('/wishlist/:id', requireToken, removeBlanks, (req, res, next) => {
     .catch(next)
 })
 
-
 // UPDATE favorite
 // PATCH /examples/5a7db6c74d55bc51bdf39793
 router.patch('/avatar/:id', requireToken, removeBlanks, (req, res, next) => {
