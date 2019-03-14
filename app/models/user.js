@@ -19,7 +19,11 @@ const userSchema = new mongoose.Schema({
   wishlist: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Movie'
-  }]
+  }],
+  avatar: {
+    type: String,
+    default: 'https://react.semantic-ui.com/images/avatar/small/matt.jpg'
+  }
 }, {
   timestamps: true,
   toObject: {

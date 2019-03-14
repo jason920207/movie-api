@@ -18,7 +18,6 @@ const promiseS3Upload = require('../../lib/promiseS3Upload')
 const handle404 = customErrors.handle404
 // we'll use this function to send 401 when a user tries to modify a resource
 // that's owned by someone else
-const requireOwnership = customErrors.requireOwnership
 
 // this is middleware that will remove blank fields from `req.body`, e.g.
 // { movie: { title: '', text: 'foo' } } -> { movie: { text: 'foo' } }
@@ -137,7 +136,6 @@ router.patch('/movies/:id', requireToken, checkAdmin, removeBlanks, (req, res, n
     // if an error occurs, pass it to the handler
     .catch(next)
 })
-
 
 // DESTROY
 // DELETE /movies/5a7db6c74d55bc51bdf39793
