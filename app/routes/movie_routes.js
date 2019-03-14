@@ -64,6 +64,26 @@ router.get('/moviesbystar', (req, res, next) => {
     .catch(next)
 })
 
+
+
+// INDEX
+// GET /movies
+router.get('/moviesbydate', (req, res, next) => {
+  Movie.find()
+    .sort({'publishDate': -1})
+    .limit(10)
+    .then(movies => {
+      // `movies` will be an array of Mongoose documents
+      // we want to convert each one to a POJO, so we use `.map` to
+      // apply `.toObject` to each one
+      return movies.map(movie => movie.toObject())
+    })
+    // respond with status 200 and JSON of the movies
+    .then(movies => res.status(200).json({ movies: movies }))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
 // SHOW
 // GET /movies/5a7db6c74d55bc51bdf39793
 router.get('/movies/:id', (req, res, next) => {
