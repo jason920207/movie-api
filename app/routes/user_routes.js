@@ -207,4 +207,26 @@ router.patch('/wishlist/:id', requireToken, removeBlanks, (req, res, next) => {
     .catch(next)
 })
 
+
+// UPDATE favorite
+// PATCH /examples/5a7db6c74d55bc51bdf39793
+router.patch('/avatar/:id', requireToken, removeBlanks, (req, res, next) => {
+  // if the client attempts to change the `owner` property by including a new
+  // owner, prevent that by deleting that key/value pair
+
+  User.findById(req.params.id)
+    .then(handle404)
+    .then(user => {
+      // pass the `req` object and the Mongoose record to `requireOwnership`
+      // it will throw an error if the current user isn't the owner
+      user.avatar = req.body.avatar
+      // pass the result of Mongoose's `.update` to the next `.then`
+      return user.save()
+    })
+    // if that succeeded, return 204 and no JSON
+    .then(() => res.sendStatus(204))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
 module.exports = router

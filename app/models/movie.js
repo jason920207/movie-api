@@ -17,10 +17,16 @@ const movieSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  commit: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Comment'
-  }]
+  imdbRating: {
+    type: Number,
+    required: true,
+    default: 0,
+    max: 10,
+    min: 0
+  },
+  trailer: {
+    type: String
+  }
 }, {
   timestamps: true
 })

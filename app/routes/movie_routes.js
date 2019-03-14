@@ -5,16 +5,19 @@ const passport = require('passport')
 
 // pull in Mongoose model for movies
 const Movie = require('../models/movie')
-
+const checkAdmin = require('../../lib/check_admin')
 // this is a collection of methods that help us detect situations when we need
 // to throw a custom error
 const customErrors = require('../../lib/custom_errors')
+// aws
+const multer = require('multer')
+const upload = multer({ dest: 'uploads/' })
+const promiseS3Upload = require('../../lib/promiseS3Upload')
 
 // we'll use this function to send 404 when non-existant document is requested
 const handle404 = customErrors.handle404
 // we'll use this function to send 401 when a user tries to modify a resource
 // that's owned by someone else
-const requireOwnership = customErrors.requireOwnership
 
 // this is middleware that will remove blank fields from `req.body`, e.g.
 // { movie: { title: '', text: 'foo' } } -> { movie: { text: 'foo' } }
@@ -43,6 +46,24 @@ router.get('/movies', (req, res, next) => {
     .catch(next)
 })
 
+// INDEX
+// GET /movies
+router.get('/moviesbystar', (req, res, next) => {
+  Movie.find()
+    .sort({'imdbRating': -1})
+    .limit(10)
+    .then(movies => {
+      // `movies` will be an array of Mongoose documents
+      // we want to convert each one to a POJO, so we use `.map` to
+      // apply `.toObject` to each one
+      return movies.map(movie => movie.toObject())
+    })
+    // respond with status 200 and JSON of the movies
+    .then(movies => res.status(200).json({ movies: movies }))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
 // SHOW
 // GET /movies/5a7db6c74d55bc51bdf39793
 router.get('/movies/:id', (req, res, next) => {
@@ -57,38 +78,55 @@ router.get('/movies/:id', (req, res, next) => {
 
 // CREATE
 // POST /movies
-router.post('/movies', (req, res, next) => {
+router.post('/movies', requireToken, checkAdmin, upload.single('imageUrl'), (req, res, next) => {
   // set owner of new movie to be current user
-  const movie = {
-    title: 'Captain Marvel',
-    description: 'Carol Danvers becomes one of the universe\'s most powerful heroes when Earth is caught in the middle of a galactic war between two alien races.',
-    imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTE0YWFmOTMtYTU2ZS00ZTIxLWE3OTEtYTNiYzBkZjViZThiXkEyXkFqcGdeQXVyODMzMzQ4OTI@._V1_UX182_CR0,0,182,268_AL_.jpg',
-    publishDate: '2019-03-08'
-  }
-  Movie.create(movie)
-    // respond to succesful `create` with status 201 and JSON of new "movie"
-    .then(movie => {
-      res.status(201).json({ movie: movie.toObject() })
+  console.log(req.body)
+  console.log('incoming req.file  is ', req.file)
+
+  promiseS3Upload(req)
+    .then(awsResponse => {
+      req.body.imageUrl = awsResponse.Location
+      Movie.create(req.body)
+        // respond to succesful `create` with status 201 and JSON of new "movie"
+        .then(movie => {
+          res.status(201).json({ movie: movie.toObject() })
+        })
+        // if an error occurs, pass it off to our error handler
+        // the error handler needs the error message and the `res` object so that it
+        // can send an error message back to the client
+        .catch(next)
     })
-    // if an error occurs, pass it off to our error handler
-    // the error handler needs the error message and the `res` object so that it
-    // can send an error message back to the client
-    .catch(next)
 })
+
+// router.post('/uploads', upload.single('image'), (req, res, next) => {
+//   console.log('incoming req.file  is ', req.file)
+//   promiseS3Upload(req)
+//     .then(awsResponse => {
+//       console.log(awsResponse)
+//       return Upload.create({url: awsResponse.Location})
+//     })
+//
+//     // respond to succesful `create` with status 201 and JSON of new "upload"
+//     .then(upload => {
+//       res.status(201).json({ upload: upload.toObject() })
+//     })
+//     // if an error occurs, pass it off to our error handler
+//     // the error handler needs the error message and the `res` object so that it
+//     // can send an error message back to the client
+//     .catch(next)
+// })
 
 // UPDATE
 // PATCH /movies/5a7db6c74d55bc51bdf39793
-router.patch('/movies/:id', requireToken, removeBlanks, (req, res, next) => {
+router.patch('/movies/:id', requireToken, checkAdmin, removeBlanks, (req, res, next) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
-  delete req.body.movie.owner
-
+  console.log(req.body.movie)
   Movie.findById(req.params.id)
     .then(handle404)
     .then(movie => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
       // it will throw an error if the current user isn't the owner
-      requireOwnership(req, movie)
 
       // pass the result of Mongoose's `.update` to the next `.then`
       return movie.update(req.body.movie)
@@ -101,12 +139,11 @@ router.patch('/movies/:id', requireToken, removeBlanks, (req, res, next) => {
 
 // DESTROY
 // DELETE /movies/5a7db6c74d55bc51bdf39793
-router.delete('/movies/:id', requireToken, (req, res, next) => {
+router.delete('/movies/:id', requireToken, checkAdmin, (req, res, next) => {
   Movie.findById(req.params.id)
     .then(handle404)
     .then(movie => {
       // throw an error if current user doesn't own `movie`
-      requireOwnership(req, movie)
       // delete the movie ONLY IF the above didn't throw
       movie.remove()
     })
