@@ -64,8 +64,6 @@ router.get('/moviesbystar', (req, res, next) => {
     .catch(next)
 })
 
-
-
 // INDEX
 // GET /movies
 router.get('/moviesbydate', (req, res, next) => {
