@@ -24,6 +24,9 @@ const movieSchema = new mongoose.Schema({
     max: 10,
     min: 0
   },
+  tag: {
+    type: String
+  },
   trailer: {
     type: String
   }
