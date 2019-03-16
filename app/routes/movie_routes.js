@@ -176,7 +176,6 @@ router.delete('/movies/:id', requireToken, checkAdmin, (req, res, next) => {
     .catch(next)
 })
 
-
 // SHOW
 // GET /movies/5a7db6c74d55bc51bdf39793
 router.get('/movies/:id', (req, res, next) => {
