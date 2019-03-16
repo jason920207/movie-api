@@ -16,10 +16,13 @@ const errorHandler = require('./lib/error_handler')
 // require database configuration logic
 // `db` will be the actual Mongo URI as a string
 const db = require('./config/db')
+// Yelp
+const yelp = require('yelp-fusion')
 
 // load secret keys for signing tokens from .env
 const dotenv = require('dotenv')
 dotenv.config()
+const client = yelp.client(process.env.YELP_SECRET_KEY)
 
 // Set the key based on the current environemnt
 // Set to secret key base test if in test

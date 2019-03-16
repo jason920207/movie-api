@@ -30,6 +30,11 @@ const requireToken = passport.authenticate('bearer', { session: false })
 // instantiate a router (mini app that only handles routes)
 const router = express.Router()
 
+const dotenv = require('dotenv')
+dotenv.config()
+const yelp = require('yelp-fusion')
+const client = yelp.client(process.env.YELP_SECRET_KEY)
+
 // INDEX
 // GET /movies
 router.get('/movies', (req, res, next) => {
@@ -169,6 +174,33 @@ router.delete('/movies/:id', requireToken, checkAdmin, (req, res, next) => {
     .then(() => res.sendStatus(204))
     // if an error occurs, pass it to the handler
     .catch(next)
+})
+
+
+// SHOW
+// GET /movies/5a7db6c74d55bc51bdf39793
+router.get('/movies/:id', (req, res, next) => {
+  // req.params.id will be set based on the `:id` in the route
+  Movie.findById(req.params.id)
+    .then(handle404)
+    // if `findById` is succesful, respond with 200 and "movie" JSON
+    .then(movie => res.status(200).json({ movie: movie.toObject() }))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
+// CREATE
+// POST /movies
+router.post('/searchtheater', (req, res, next) => {
+  // set owner of new movie to be current user
+  client.search({
+    term: 'Cinema',
+    location: req.body.location
+  }).then(response => {
+    res.status(200).json({ theater: response.jsonBody.businesses })
+  }).catch(e => {
+    console.log(e)
+  })
 })
 
 module.exports = router
