@@ -193,7 +193,7 @@ router.get('/movies/:id', (req, res, next) => {
 router.post('/searchtheater', (req, res, next) => {
   // set owner of new movie to be current user
   client.search({
-    term: 'Cinema',
+    term: 'Movie Theater',
     location: req.body.location
   }).then(response => {
     res.status(200).json({ theater: response.jsonBody.businesses })
